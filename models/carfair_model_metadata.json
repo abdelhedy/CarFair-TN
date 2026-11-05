@@ -1,0 +1,41 @@
+{
+  "modele": "XGBoost optimisé",
+  "date_entrainement": "2026-11-03",
+  "donnees": "data/processed/tayara_cars_cleaned.csv",
+  "annonces": 4257,
+  "variables": [
+    "kilometrage",
+    "annee",
+    "cylindree",
+    "puissance_fiscale",
+    "marque",
+    "modele",
+    "boite",
+    "carburant",
+    "type_de_carrosserie",
+    "etat_du_vehicule"
+  ],
+  "cible": "prix_log = log1p(prix) ; prix = expm1(prediction)",
+  "validation_croisee": {
+    "rmse_log (moy.)": 0.23319491723162664,
+    "mae_tnd (moy.)": 8338.708419129078,
+    "median_ape (moy.)": 10.08200887899699,
+    "rmse_log (écart-type)": 0.00917049689374449,
+    "mae_tnd (écart-type)": 394.2076106622885,
+    "median_ape (écart-type)": 0.43221063259190523
+  },
+  "test": {
+    "RMSE (log)": 0.23950360862602668,
+    "R² (log)": 0.8532643637411093,
+    "MAE (TND)": 7870.039371740005,
+    "Erreur relative médiane (%)": 10.443437685155423,
+    "À ±10 % (%)": 48.47417840375587,
+    "À ±20 % (%)": 77.69953051643192
+  },
+  "versions": {
+    "python": "3.10.0",
+    "scikit-learn": "1.7.2",
+    "xgboost": "3.2.0",
+    "pandas": "2.3.3"
+  }
+}
