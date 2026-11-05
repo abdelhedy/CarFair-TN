@@ -1,0 +1,31 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Données brutes : non publiées (annonces issues de tayara.tn)
+# data/private/ contient aussi les originaux non anonymisés et la clé d'anonymisation
+data/private/
+data/raw/
+
+# Étude de cas pour le portfolio (non publiée dans le dépôt)
+CASE_STUDY.md
+
+# Notebooks internes (non publiés)
+notebooks/03_modeling_interne_comparaison.ipynb
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

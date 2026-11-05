@@ -1,0 +1,21 @@
+# Versions figées : le modèle sauvegardé (models/carfair_model.joblib) a été entraîné avec ces versions
+# et ne se recharge de façon fiable qu'avec elles.
+
+# Données et analyse
+pandas==2.3.3
+numpy==2.2.6
+scipy==1.15.3
+
+# Visualisation
+matplotlib==3.10.9
+
+# Machine learning
+scikit-learn==1.7.2
+xgboost==3.2.0
+joblib==1.6.0
+
+# Application
+streamlit==1.65.0
+
+# Notebooks
+ipykernel==7.3.0
