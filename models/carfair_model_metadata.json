@@ -1,6 +1,6 @@
 {
   "modele": "XGBoost optimisé",
-  "date_entrainement": "2026-11-03",
+  "date_entrainement": "2026-11-06",
   "donnees": "data/processed/tayara_cars_cleaned.csv",
   "annonces": 4257,
   "variables": [
@@ -32,6 +32,36 @@
     "À ±10 % (%)": 48.47417840375587,
     "À ±20 % (%)": 77.69953051643192
   },
+  "fourchette_3_cas_sur_4": [
+    {
+      "estimation_min": 0.0,
+      "estimation_max": 20000.0,
+      "ratio_bas": 0.7104200468512595,
+      "ratio_haut": 1.3336741127817304,
+      "annonces_test": 73
+    },
+    {
+      "estimation_min": 20000.0,
+      "estimation_max": 40000.0,
+      "ratio_bas": 0.8460288162341424,
+      "ratio_haut": 1.1765600611907823,
+      "annonces_test": 330
+    },
+    {
+      "estimation_min": 40000.0,
+      "estimation_max": 70000.0,
+      "ratio_bas": 0.8477079540160756,
+      "ratio_haut": 1.2218609861654628,
+      "annonces_test": 297
+    },
+    {
+      "estimation_min": 70000.0,
+      "estimation_max": Infinity,
+      "ratio_bas": 0.8080655182294509,
+      "ratio_haut": 1.1857601138642568,
+      "annonces_test": 152
+    }
+  ],
   "versions": {
     "python": "3.10.0",
     "scikit-learn": "1.7.2",
