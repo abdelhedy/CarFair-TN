@@ -1,214 +1,223 @@
 # CarFair-TN
 
+**English** · [Français](README.fr.md)
+
 Predicting fair used-car prices in Tunisia using Tayara listings, XGBoost, and Streamlit.
 
-[![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://carfair-tn.streamlit.app/)
+
+[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.7-F7931E?logo=scikitlearn&logoColor=white)](https://scikit-learn.org/)
 [![XGBoost](https://img.shields.io/badge/XGBoost-3.2-EB5B2C)](https://xgboost.ai/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.65-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 
-**CarFair-TN** estime le juste prix d'une voiture d'occasion en Tunisie à partir de ses caractéristiques (marque,
-modèle, année, kilométrage, motorisation…). Le modèle est entraîné sur des annonces publiées sur
-[tayara.tn](https://www.tayara.tn), l'un des principaux sites de petites annonces du pays.
+**CarFair-TN** estimates the fair price of a used car in Tunisia from its specifications (make, model, year, mileage,
+engine…). The model is trained on listings from [tayara.tn](https://www.tayara.tn), one of the country's leading
+classifieds sites.
 
-## Sommaire
+## Contents
 
-- [Résultats](#résultats)
-- [Données](#données)
-- [Le défi : des données de marketplace](#le-défi--des-données-de-marketplace)
-- [Démarche](#démarche)
-- [Choix techniques](#choix-techniques)
-- [Structure du dépôt](#structure-du-dépôt)
+- [Results](#results)
+- [Data](#data)
+- [The challenge: marketplace data](#the-challenge-marketplace-data)
+- [Approach](#approach)
+- [Technical choices](#technical-choices)
+- [Repository structure](#repository-structure)
 - [Installation](#installation)
-- [Reproduire les résultats](#reproduire-les-résultats)
+- [Reproducing the results](#reproducing-the-results)
 - [Application](#application)
-- [Utiliser le modèle](#utiliser-le-modèle)
-- [Limites et pistes d'amélioration](#limites-et-pistes-damélioration)
-- [Auteur](#auteur)
+- [Using the model](#using-the-model)
+- [Limitations and next steps](#limitations-and-next-steps)
+- [Author](#author)
 
-## Résultats
+## Results
 
-Sur des annonces jamais vues pendant l'entraînement (jeu de test de 852 annonces) :
+On a held-out test set of 852 listings never seen during training:
 
-| | Règle simple (médiane des voitures similaires) | Modèle CarFair-TN |
+| | Simple rule (median of similar cars) | CarFair-TN model |
 |---|---|---|
-| Erreur relative médiane | 17.2 % | **10.4 %** |
-| Erreur absolue moyenne | 15 308 TND | **7 870 TND** |
-| Estimations à ±10 % du prix réel | 32 % | **48 %** |
-| Estimations à ±20 % du prix réel | 54 % | **78 %** |
+| Median relative error | 17.2% | **10.4%** |
+| Mean absolute error | 15,308 TND | **7,870 TND** |
+| Estimates within ±10% of the asking price | 32% | **48%** |
+| Estimates within ±20% of the asking price | 54% | **78%** |
 
-Le modèle retenu est un XGBoost optimisé, entraîné sur le logarithme du prix. Un SVR et une moyenne Ridge + XGBoost
-obtiennent des scores statistiquement équivalents en validation croisée : le modèle le plus simple a été retenu.
+The final model is a tuned XGBoost regressor trained on the log of the price. An SVR and a Ridge + XGBoost average
+achieve statistically equivalent cross-validation scores, so the simpler model was kept.
 
-## Données
+## Data
 
-- **Source** : annonces publiques de la catégorie « voitures » de [tayara.tn](https://www.tayara.tn), collectées par
-  scraping en novembre 2025.
-- **Volume** : 7 178 annonces brutes, 17 champs (prix, kilométrage, année, marque, modèle, cylindrée, puissance
-  fiscale, boîte, carburant, carrosserie, couleur, état, titre, description, identifiant d'annonce, ville, date).
-- **Après nettoyage** : 4 257 annonces exploitables (`data/processed/tayara_cars_cleaned.csv`).
-- **Anonymisation** : les numéros de téléphone des vendeurs (dans les titres, les descriptions et certains champs
-  numériques) sont remplacés par des numéros fictifs de même format, et l'url de chaque annonce par un identifiant
-  anonyme (`scripts/anonymize_raw_data.py`).
-- **Données publiées** : seul le dataset nettoyé est publié. Les données brutes (originales comme anonymisées) ne le
-  sont pas.
-- **Usage** : projet pédagogique, réalisé dans le cadre d'un cursus universitaire ; les données ne sont pas destinées à
-  un usage commercial.
+- **Source**: public listings from the "cars" section of [tayara.tn](https://www.tayara.tn), scraped in November
+  2025.
+- **Volume**: 7,178 raw listings, 17 fields (price, mileage, year, make, model, engine size, tax horsepower,
+  transmission, fuel, body type, color, condition, title, description, listing identifier, city, date).
+- **After cleaning**: 4,257 usable listings (`data/processed/tayara_cars_cleaned.csv`).
+- **Anonymization**: sellers' phone numbers (in titles, descriptions and some numeric fields) are replaced with fake
+  numbers of the same format, and each listing's URL with an anonymous identifier (`scripts/anonymize_raw_data.py`).
+- **Published data**: only the cleaned dataset is published, not the raw data (original or anonymized).
+- **Usage**: academic project completed as part of a university degree; the data is not intended for commercial use.
 
-## Le défi : des données de marketplace
+## The challenge: marketplace data
 
-Sur une marketplace, chaque vendeur remplit les champs comme il le souhaite. L'exploration des 7 178 annonces collectées
-a montré qu'une grande partie des valeurs ne pouvait pas être utilisée telle quelle :
+On a marketplace, sellers fill in the fields however they like. Exploring the 7,178 collected listings showed that a
+large share of the values could not be used as is:
 
-- des prix saisis en **milliers de dinars** (`61` pour une Polo à 61 000 TND) ou en **millimes** (`36 000 000`) ;
-- des **valeurs de remplissage** pour les vendeurs qui préfèrent négocier par téléphone (`1234`, `55 111 110`) ;
-- des **numéros de téléphone** dans le champ prix ;
-- des **kilométrages saisis en milliers** ou collés à l'année (`1440002021` = 144 000 km + 2021) ;
-- des marques par défaut, du texte de description dans les mauvais champs, des annonces republiées, des pièces
-  détachées et des locations dans la catégorie « voitures ».
+- prices entered in **thousands of dinars** (`61` for a Polo at 61,000 TND) or in **millimes** (`36 000 000`);
+- **placeholder values** from sellers who prefer to negotiate over the phone (`1234`, `55 111 110`);
+- **phone numbers** in the price field;
+- **mileages entered in thousands**, or concatenated with the year (`1440002021` = 144,000 km + 2021);
+- makes left at the form's default value, description text in the wrong fields, reposted listings, and spare parts
+  or rentals listed under "cars".
 
-Plutôt que de supprimer toutes les valeurs suspectes, le nettoyage **corrige ce qui peut l'être de façon sûre**
-(848 prix récupérés) et vérifie chaque correction par un contrôle de plausibilité.
+Rather than dropping every suspicious value, the cleaning step **fixes what can be fixed safely** (848 prices
+recovered) and validates each fix with a plausibility check.
 
-## Démarche
+## Approach
 
 ```mermaid
 flowchart LR
-    A["Annonces tayara.tn<br/>7 178 annonces"] --> B["Anonymisation<br/>scripts/anonymize_raw_data.py"]
-    B --> C["01_eda<br/>exploration des anomalies"]
-    B --> D["02_preprocessing<br/>nettoyage · src/cleaning.py"]
-    C -.->|anomalies à corriger| D
-    D --> E["Dataset nettoyé<br/>4 257 annonces"]
-    E --> F["03_modeling<br/>pipelines · validation croisée"]
-    F --> G["Modèle<br/>carfair_model.joblib"]
+    A["tayara.tn listings<br/>7,178 listings"] --> B["Anonymization<br/>scripts/anonymize_raw_data.py"]
+    B --> C["01_eda<br/>exploring the anomalies"]
+    B --> D["02_preprocessing<br/>cleaning · src/cleaning.py"]
+    C -.->|anomalies to fix| D
+    D --> E["Cleaned dataset<br/>4,257 listings"]
+    E --> F["03_modeling<br/>pipelines · cross-validation"]
+    F --> G["Model<br/>carfair_model.joblib"]
     G --> H["Application<br/>Streamlit"]
 ```
 
-Les notebooks se lisent dans l'ordre :
+The notebooks (written in French) are meant to be read in order:
 
-| Notebook | Contenu |
+| Notebook | Content |
 |---|---|
-| [`01_eda.ipynb`](notebooks/01_eda.ipynb) | Exploration des données brutes : chaque anomalie est mise en évidence et démontrée (tableaux, graphiques, exemples). |
-| [`02_preprocessing.ipynb`](notebooks/02_preprocessing.ipynb) | Correction des anomalies, ligne par ligne : déduplication, reconstruction des prix, correction du kilométrage, extraction d'informations depuis le texte des annonces, liste de référence des marques. |
-| [`03_modeling.ipynb`](notebooks/03_modeling.ipynb) | Baseline, préparation adaptée à chaque famille de modèles, comparaison en validation croisée (Ridge, SVR, Random Forest, XGBoost), optimisation, sélection de variables par permutation, évaluation finale sur le jeu de test. |
+| [`01_eda.ipynb`](notebooks/01_eda.ipynb) | Exploration of the raw data: each anomaly is identified and illustrated with tables, charts and examples. |
+| [`02_preprocessing.ipynb`](notebooks/02_preprocessing.ipynb) | Row-level fixes for the anomalies: deduplication, price recovery, mileage correction, information extracted from the listing text, and a reference list of makes. |
+| [`03_modeling.ipynb`](notebooks/03_modeling.ipynb) | Baseline, preprocessing tailored to each model family, cross-validated comparison (Ridge, SVR, Random Forest, XGBoost), hyperparameter tuning, permutation-based feature selection, and final evaluation on the test set. |
 
-Quelques principes suivis tout au long du projet :
+Principles applied throughout the project:
 
-- **Pas de fuite de données** : le nettoyage ne fait que des corrections ligne par ligne ; toute statistique apprise
-  (imputation, encodage) l'est dans des pipelines scikit-learn, sur les données d'entraînement uniquement.
-- **Un jeu de test mis de côté dès le départ** et utilisé une seule fois, à la fin. Tous les choix sont faits en
-  validation croisée.
-- **Des métriques en dinars**, en plus des métriques techniques.
-- **Un seul fichier de modèle** contenant tout le pipeline (imputation, encodage, modèle).
+- **No data leakage**: cleaning is limited to row-level fixes; anything learned from the data (imputation, encoding)
+  is fitted inside scikit-learn pipelines, on the training data only.
+- **A test set held out from the start** and used only once, at the very end. All modeling decisions are made with
+  cross-validation.
+- **Metrics in dinars**, alongside the standard technical metrics.
+- **A single model file** containing the full pipeline (imputation, encoding, model).
 
-## Choix techniques
+## Technical choices
 
-| Question | Choix | Pourquoi |
+| Question | Choice | Why |
 |---|---|---|
-| Valeurs aberrantes | **corriger plutôt que supprimer** quand la correction est sûre | un prix de `61` pour une Polo 2020 est un prix en milliers, pas une erreur : 848 prix récupérés, chacun vérifié par comparaison avec des voitures similaires |
-| Cible | **logarithme du prix**, prédictions ramenées en dinars | les erreurs qui comptent sont relatives (10 000 TND d'écart n'ont pas le même poids sur une citadine et sur un 4x4), et quelques voitures de luxe ne dominent plus l'apprentissage |
-| Préparation des données | **adaptée à chaque famille de modèles** | one-hot et standardisation pour les modèles linéaires ; catégories et valeurs manquantes gérées nativement par XGBoost. Le regroupement des modèles rares et le target encoding ont été testés, sans gain |
-| Choix du modèle | **XGBoost seul** plutôt qu'une moyenne Ridge + XGBoost | scores équivalents en validation croisée : la règle du un écart-type retient le plus simple. Une comparaison appariée sur 25 folds montre en plus qu'XGBoost est plus précis sur une voiture typique (erreur médiane plus basse sur 96 % des folds) |
-| Évaluation | **jeu de test utilisé une seule fois** | tous les choix sont faits en validation croisée, pour que la performance annoncée ne soit pas optimiste |
+| Outliers | **fix rather than drop** when the fix is safe | a price of `61` for a 2020 Polo is a price in thousands, not an error; 848 prices were recovered, each checked against similar cars |
+| Target | **log of the price**, with predictions converted back to dinars | what matters is relative error (a 10,000 TND error means far more on a city car than on an SUV), and a handful of luxury cars no longer dominate training |
+| Data preparation | **tailored to each model family** | one-hot encoding and scaling for linear models; native handling of categories and missing values for XGBoost. Grouping rare models and target encoding were tested, with no improvement |
+| Model choice | **XGBoost alone** rather than a Ridge + XGBoost average | equivalent cross-validation scores, so the one-standard-error rule favors the simpler model. A paired comparison over 25 folds also shows that XGBoost is more accurate on a typical car (lower median error on 96% of folds) |
+| Evaluation | **test set used only once** | all decisions are made with cross-validation, so the reported performance is not optimistically biased |
 
-## Structure du dépôt
+## Repository structure
 
 ```
 CarFair-TN/
 ├── data/
-│   ├── raw/                     annonces brutes anonymisées (non publiées)
+│   ├── raw/                     anonymized raw listings (not published)
 │   └── processed/
-│       ├── tayara_cars_cleaned.csv   dataset nettoyé (sortie de 02_preprocessing)
-│       └── test_ids.csv              annonces du jeu de test (découpage reproductible)
+│       ├── tayara_cars_cleaned.csv   cleaned dataset (output of 02_preprocessing)
+│       └── test_ids.csv              test set listing IDs (reproducible split)
 ├── notebooks/                   01_eda, 02_preprocessing, 03_modeling
 ├── src/
-│   ├── cleaning.py              règles de nettoyage (sans apprentissage)
-│   ├── features.py              transformations apprises sur l'entraînement (imputations…)
+│   ├── cleaning.py              cleaning rules (nothing learned from data)
+│   ├── features.py              transformations learned on the training data (imputations…)
 │   ├── models.py                baseline
-│   └── evaluation.py            métriques (dont les métriques en dinars)
+│   └── evaluation.py            metrics (including metrics in dinars)
 ├── models/
-│   ├── carfair_model.joblib     pipeline complet entraîné
-│   └── carfair_model_metadata.json   variables, performances, versions des bibliothèques
-├── app/                         application Streamlit
+│   ├── carfair_model.joblib     complete trained pipeline
+│   └── carfair_model_metadata.json   features, performance, library versions
+├── app/                         Streamlit application
 ├── scripts/
-│   └── anonymize_raw_data.py    anonymisation des données brutes avant publication
+│   └── anonymize_raw_data.py    anonymizes the raw data before publication
 └── requirements.txt
 ```
 
 ## Installation
 
-Python 3.10.
+Python 3.10 to 3.12 (developed with 3.10; the online demo runs on 3.12).
 
 ```bash
 git clone https://github.com/abdelhedy/CarFair-TN.git
 cd CarFair-TN
 python -m venv .venv
-.venv\Scripts\activate          # Windows ; sous Linux / macOS : source .venv/bin/activate
+.venv\Scripts\activate          # Windows; on Linux / macOS: source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Les notebooks s'ouvrent ensuite dans VS Code ou Jupyter, avec l'environnement `.venv`.
+You can then open the notebooks in VS Code or Jupyter using the `.venv` environment.
 
-## Reproduire les résultats
+## Reproducing the results
 
-Les notebooks s'exécutent dans l'ordre, chacun utilisant ce que produit le précédent :
+Run the notebooks in order; each one uses the output of the previous one:
 
-| Étape | Produit | Durée indicative |
+| Step | Output | Approx. runtime |
 |---|---|---|
-| `01_eda.ipynb` | constats sur les données brutes | quelques secondes |
-| `02_preprocessing.ipynb` | `data/processed/tayara_cars_cleaned.csv` | quelques secondes |
-| `03_modeling.ipynb` | `models/carfair_model.joblib` et ses métadonnées | environ 5 minutes |
+| `01_eda.ipynb` | findings on the raw data | a few seconds |
+| `02_preprocessing.ipynb` | `data/processed/tayara_cars_cleaned.csv` | a few seconds |
+| `03_modeling.ipynb` | `models/carfair_model.joblib` and its metadata | about 5 minutes |
 
-Les découpages et les modèles utilisent une graine aléatoire fixe : une nouvelle exécution redonne les mêmes résultats.
+All splits and models use a fixed random seed, so re-running the notebooks gives the same results.
 
-Les données brutes n'étant pas publiées, `01_eda.ipynb` et `02_preprocessing.ipynb` se consultent avec leurs résultats
-déjà affichés. `03_modeling.ipynb` et l'application se relancent à partir du dataset nettoyé publié.
+Since the raw data is not published, `01_eda.ipynb` and `02_preprocessing.ipynb` are provided with their
+outputs already rendered. `03_modeling.ipynb` and the app can be re-run from the published cleaned dataset.
 
 ## Application
+
+Live demo: **[carfair-tn.streamlit.app](https://carfair-tn.streamlit.app/)**
+
+To run it locally:
 
 ```bash
 streamlit run app/streamlit_app.py
 ```
 
-L'application s'ouvre dans le navigateur (`http://localhost:8501`). On choisit la marque et le modèle, l'année et le
-kilométrage ; les autres caractéristiques sont pré-remplies avec les valeurs les plus courantes pour ce modèle et
-peuvent être ajustées. L'application affiche :
+The app opens in your browser at `http://localhost:8501`. It is available in French and English (FR | EN switch in the
+navigation bar). Pick the make and model, the year and the mileage; the other specs are pre-filled with the most common
+values for that model and can be adjusted. The app shows:
 
-- le **prix estimé** et une fourchette indicative, calculée à partir de l'erreur mesurée sur le jeu de test ;
-- les **annonces comparables** du dataset (même modèle, année à ±1 an), avec leur année, leur kilométrage et leur prix ;
-- un **avertissement** quand l'estimation est moins fiable : modèle rare dans les données, ou annonces comparables aux
-  prix très dispersés.
+- the **estimated price** and a **likely range**, which contained the asking price in 3 out of 4 cases on the test
+  set (its width depends on the price level);
+- a **listing price check**: enter a listing's asking price to see whether it is below, in line with, or above the
+  market;
+- **similar listings** from the dataset (same model, year ±1): how many there are, the price range of the middle half,
+  and the median price, plotted on a bar alongside the estimate and the price entered;
+- a **warning** when the estimate is less reliable: a model with few listings in the data, or similar listings whose
+  prices vary widely.
 
-## Utiliser le modèle
+## Using the model
 
 ```python
 import joblib
 import numpy as np
 import pandas as pd
 
-model = joblib.load("models/carfair_model.joblib")   # à lancer depuis la racine du dépôt
+model = joblib.load("models/carfair_model.joblib")   # run from the repository root
 
-voiture = pd.DataFrame([{
+car = pd.DataFrame([{
     "kilometrage": 85000, "annee": 2018, "cylindree": 1.2, "puissance_fiscale": 5,
     "marque": "peugeot", "modele": "208", "boite": "manuelle", "carburant": "essence",
     "type_de_carrosserie": "compacte", "etat_du_vehicule": "avec kilometrage",
 }])
-prix = np.expm1(model.predict(voiture))[0]
-print(f"Prix estimé : {prix:,.0f} TND")   # Prix estimé : 30,293 TND
+price = np.expm1(model.predict(car))[0]
+print(f"Estimated price: {price:,.0f} TND")   # Estimated price: 30,293 TND
 ```
 
-Les catégories sont écrites en minuscules, sans accents, comme dans `data/processed/tayara_cars_cleaned.csv`. Les
-valeurs inconnues peuvent être laissées vides (`None`) : le pipeline les gère.
+Column names and categories follow the dataset, which is in French: lowercase and without accents, as in
+`data/processed/tayara_cars_cleaned.csv`. Unknown values can be set to `None`; the pipeline handles them.
 
-## Limites et pistes d'amélioration
+## Limitations and next steps
 
-- Le modèle ne voit ni l'état réel du véhicule ni ses options : c'est la principale source d'erreur restante, surtout
-  pour les voitures anciennes (moins de 20 000 TND).
-- Certaines annonces ont un prix qui ne reflète pas une vente normale (épave, douane non payée, transfert de leasing) :
-  elles pourraient être repérées par mots-clés.
-- La ville de l'annonce, renseignée pour 43 % des annonces seulement, n'est pas encore exploitée.
-- Les données couvrent les annonces de novembre 2025 : le modèle devra être réentraîné à mesure que le marché évolue.
+- The model cannot see the car's actual condition or its options. This is the main remaining source of error,
+  especially for older cars (under 20,000 TND).
+- Some listings are priced for something other than a regular sale (salvage cars, unpaid customs duties, lease
+  transfers); these could be flagged with keywords.
+- The listing's city, available for only 43% of listings, is not used yet.
+- The data covers November 2025 listings only, so the model will need retraining as the market changes.
 
-## Auteur
+## Author
 
-Projet réalisé par Yasmine Abdelhedi.
+Project by Yasmine Abdelhedi.
